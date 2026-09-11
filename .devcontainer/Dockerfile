@@ -137,3 +137,6 @@ ENV PATH="${ZEPHYR_SDK}/${TOOLCHAIN}/bin:${PATH}"
 
 # Set the final default working directory back to your active workspace
 WORKDIR /home/${USERNAME}/workspace
+RUN mkdir application
+
+RUN git clone https://github.com/clubrobot/robot-zephyr-boards.git /home/${USERNAME}/boards

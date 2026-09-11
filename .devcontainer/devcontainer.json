@@ -1,11 +1,24 @@
 // Default Ubuntu-based DevContainer Template.
 // For more customization options, see https://containers.dev/implementors/json_reference
 {
-  "name": "vscode-zephyr",
+  "name": "zephyr-dev-env",
 
-  // build from GitHub container registry package
-  // https://github.com/cooked?tab=packages&repo_name=vscode-zephyr-devcontainer
-  "image" : "ghcr.io/cooked/vscode-zephyr-devcontainer-stm32",
+  // build with Dockerfile and args
+  // see also https://aka.ms/vscode-remote/containers/non-root.
+  "dockerFile": "Dockerfile",
+  "context": "../",
+  "build": {
+    "args": {
+      "TARGET" : "stm32",
+      "TOOLCHAIN" : "arm-zephyr-eabi",
+      "ZSDK_VERSION" : "1.0.1",
+      "ZEPHYR_VERSION": "v4.4.0",
+      "ZEPHYR_ALLOW_LIST": "cmsis, hal_stm32"
+    }
+  },
+
+  // Trigger the script immediately after the container starts and mounts the volume
+  "postStartCommand": "if [ ! -d .west ]; then echo 'Copying pre-built Zephyr environment...'; cp -r /home/user/.stage/. .; fi",
 
   //"remoteUser": "user",
 
@@ -16,21 +29,17 @@
   ],
 
   // https://code.visualstudio.com/remote/advancedcontainers/change-default-source-mount
-  "workspaceMount": "source=${localWorkspaceFolder},target=/home/user/workspace,type=bind",
-  "workspaceFolder": "/home/user/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/user/workspace/application,type=bind",
+  "workspaceFolder": "/home/user/workspace/application",
 
   // see https://code.visualstudio.com/remote/advancedcontainers/add-local-file-mount
   // mount local folder that are external to the workspace
   "mounts": [
-    //"source=${env:HOME}/research-zephyr/samples,target=${containerWorkspaceFolder}/samples,type=bind,consistency=cached",
   ],
 
   // make a list of ports inside the container available locally
   "forwardPorts": [
   ],
-
-  /*name: "Default",
-  image: "ubuntu:latest",*/
 
   customizations : {
     // Configure JetBrains IDE-specific properties
@@ -45,11 +54,9 @@
         // Plugin ID can be found on the corresponding plugin’s page at https://plugins.jetbrains.com.
       ]
     }
-  },/*
+  },
   features: {
     "ghcr.io/devcontainers/features/git" : {},
     // Add additional features to your project using auto-completion.
   },
-  // Comment out to connect as the root user.
-  remoteUser: "ubuntu"*/
 }
