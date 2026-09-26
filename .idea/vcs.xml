@@ -2,8 +2,5 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/modules/hal/cmsis" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/modules/hal/stm32" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/zephyr" vcs="Git" />
   </component>
 </project>
