@@ -30,7 +30,7 @@
 
   // https://code.visualstudio.com/remote/advancedcontainers/change-default-source-mount
   "workspaceMount": "source=${localWorkspaceFolder},target=/home/user/workspace/application,type=bind",
-  "workspaceFolder": "/home/user/workspace/application",
+  "workspaceFolder": "/home/user/workspace",
 
   // see https://code.visualstudio.com/remote/advancedcontainers/add-local-file-mount
   // mount local folder that are external to the workspace
