@@ -1,0 +1,6 @@
+board:
+  name: carte26
+  full_name: Carte Club Robot 26
+  vendor: clubrobot
+  socs:
+    - name: stm32h723xx
