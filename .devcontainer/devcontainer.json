@@ -18,7 +18,7 @@
   },
 
   // Trigger the script immediately after the container starts and mounts the volume
-  "postStartCommand": "if [ ! -d .west ]; then echo 'Copying pre-built Zephyr environment...'; cp -r /home/user/.stage/. .; fi",
+  "postStartCommand": "if [ ! -d .west ]; then echo 'Copying pre-built Zephyr environment...'; cp -r /home/user/.stage/. .; fi; ln -s application/.idea .idea",
 
   //"remoteUser": "user",
 
