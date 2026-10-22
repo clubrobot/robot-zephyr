@@ -1,4 +1,4 @@
-identifier: nucleo_h723zg
+identifier: carte26
 name: ST Nucleo H723ZG
 type: mcu
 arch: arm
@@ -25,4 +25,4 @@ supported:
   - can
   - dac
   - adc
-vendor: st
+vendor: crir

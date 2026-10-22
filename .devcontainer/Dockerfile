@@ -128,7 +128,7 @@ ENV SVD_DIR=/home/${USERNAME}/cmsis-svd-data/data/STMicro
 
 
 ENV XDG_CACHE_HOME=/home/${USERNAME}/.cache
-ENV ZEPHYR_BASE=/home/${USERNAME}/zephyr
+ENV ZEPHYR_BASE=/home/${USERNAME}/workspace/zephyr
 ENV PATH="${ZEPHYR_BASE}/scripts:${PATH}"
 # add openocd to PATH
 ENV PATH="${ZEPHYR_SDK}/sysroots/x86_64-pokysdk-linux/usr/bin:${PATH}"

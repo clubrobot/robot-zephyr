@@ -1,0 +1,47 @@
+# Créé par Awing le 21/10/2026
+# SPDX-License-Identifier: AGPL-3.0
+
+description: |
+  Binding pour le DRV8876 contrôlant les moteurs.
+  
+  
+compatible: "drv8876"
+include: "base.yaml"
+
+properties:
+  gpio-sleep:
+    type: phandle
+    required: true
+    description: Le pin de sleep du driver
+
+  gpio-fault:
+    type: phandle
+    required: true
+    description: Le pin de fault du driver
+
+  channel-count:
+    type: int
+    required: false
+    default: 1
+    description: The number of active channel
+
+children:
+  channel:
+    description: Motor channel configuration
+    properties:
+      gpio-en:
+        type: phandle
+        required: true
+        description: Enable GPIO for this motor channel
+
+      gpio-pwm:
+        type: phandle
+        required: true
+        description: PWM GPIO for this motor channel
+
+      gpios-dir:
+        type: phandle
+        required: true
+        description: Direction GPIO for this motor channel
+
+

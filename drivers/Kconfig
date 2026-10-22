@@ -1,4 +1,5 @@
 
 menu "Drivers"
-
+rsource "DRV8844/Kconfig"
+rsource "DRV8876/Kconfig"
 endmenu

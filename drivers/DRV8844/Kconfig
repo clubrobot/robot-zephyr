@@ -1,0 +1,25 @@
+
+menuconfig DRV8844
+    bool "DRV8844 driver support"
+    help
+        This option enables the driver support for the DRV8844
+
+if DRV8844
+
+config DRV8844_INIT_PRIORITY
+    int "DRV8844 driver init priority"
+    default KERNEL_INIT_PRIORITY_DEVICE
+    help
+        DRV8844 driver initialisation priority
+
+config DRV8844_PWM_PERIOD
+    int "DRV8844 PWM period (ns)"
+    default 30000
+    help
+        DRV8844 PWM frequency in nanoseconds
+
+module = DRV8844
+module-str = DRV8844
+source "subsys/logging/Kconfig.template.log_config"
+
+endif

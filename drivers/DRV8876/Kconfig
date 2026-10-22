@@ -1,0 +1,19 @@
+
+menuconfig DRV8876
+    bool "DRV8876 driver support"
+    help
+        This option enables the driver support for the DRV8876
+
+if DRV8876
+
+config DRV8876_INIT_PRIORITY
+    int "DRV8876 driver init priority"
+    default KERNEL_INIT_PRIORITY_DEVICE
+    help
+        DRV8876 driver initialisation priority
+
+module = DRV8876
+module-str = DRV8876
+source "subsys/logging/Kconfig.template.log_config"
+
+endif

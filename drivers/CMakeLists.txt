@@ -1,3 +1,3 @@
 
-
-
+add_subdirectory_ifdef(CONFIG_DRV8876 DRV8876)
+add_subdirectory_ifdef(CONFIG_DRV8844 DRV8844)
