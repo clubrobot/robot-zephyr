@@ -4,7 +4,12 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(app LANGUAGES C CXX)
 target_sources(app PRIVATE
         src/main.cpp
-        src/drv8844.cpp
+        src/wheeledbase/wb_thread.cpp
+        src/sensors/SensorsThread.cpp
+        src/ihm/ihm.cpp
+        src/cerveau/Automate.cpp
+        src/cerveau/Killer.cpp
+        src/cerveau/Strategie.cpp
 )
 target_include_directories(
         app
