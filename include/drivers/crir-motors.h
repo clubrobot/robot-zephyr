@@ -36,15 +36,15 @@ extern "C" {
         int (*set_position)(const struct device *dev, uint8_t channel, float angle);
     };
 
-    __syscall int crir_motors_speed(const struct device *dev, uint8_t channel, float speed);
-    __syscall int crir_motors_position(const struct device *dev, uint8_t channel, float angle);
+    __syscall int crir_motors_set_speed(const struct device *dev, uint8_t channel, float speed);
+    __syscall int crir_motors_set_position(const struct device *dev, uint8_t channel, float angle);
 
-    static inline int z_impl_crir_motors_speed(const struct device *dev, uint8_t channel, float speed) {
+    static inline int z_impl_crir_motors_set_speed(const struct device *dev, uint8_t channel, float speed) {
         __ASSERT_NO_MSG(DEVICE_API_IS(crir_motors_speed, dev));
         return DEVICE_API_GET(crir_motors_speed, dev)->set_speed(dev, channel, speed);
     }
 
-    static inline int z_impl_crir_motors_position(const struct device *dev, uint8_t channel, float angle) {
+    static inline int z_impl_crir_motors_set_position(const struct device *dev, uint8_t channel, float angle) {
         __ASSERT_NO_MSG(DEVICE_API_IS(crir_motors_position, dev));
         return DEVICE_API_GET(crir_motors_position, dev)->set_position(dev, channel, angle);
     }

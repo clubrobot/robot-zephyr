@@ -9,9 +9,11 @@
 
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/drivers/pwm.h>
+
+#include <math.h>
 
 #include <drivers/crir-motors.h>
 
@@ -21,7 +23,7 @@ LOG_MODULE_REGISTER(DRV8844, CONFIG_DRV8844_LOG_LEVEL);
 
 struct drv8844_channel_config {
     struct gpio_dt_spec gpio_en;
-    struct pwm_dt_spec gpio_pwm;
+    struct pwm_dt_spec pwm;
     struct gpio_dt_spec gpio_dir;
 };
 
@@ -50,10 +52,12 @@ static int drv8844_set_speed(const struct device *dev, uint8_t channel, float sp
         return -ENODEV;
     }
 
-    auto [gpio_en, gpio_pwm, gpio_dir] = config->channels[channel];
+    auto [gpio_en, pwm, gpio_dir] = config->channels[channel];
     gpio_pin_set_dt(&gpio_en, 1);
     gpio_pin_set_dt(&gpio_dir, speed > 0 ? 1 : 0);
-    pwm_set_dt(&gpio_pwm, CONFIG_DRV8844_PWM_PERIOD, speed * CONFIG_DRV8844_PWM_PERIOD);
+
+    const uint32_t pulse = static_cast<uint32_t>(magnitude * pwm.period);
+    pwm_set_dt(&pwm, pwm.period, pulse);
 
 
     return 0;
@@ -65,7 +69,6 @@ static DEVICE_API(crir_motors_speed, crir_motors_speed_driver_api) = {
 
 static int drv8844_init(const struct device *dev) {
     const auto *config =  static_cast<const drv8844_config *>(dev->config);
-    auto *data = static_cast<drv8844_data *>(dev->data);
 
     if (!gpio_is_ready_dt(&config->gpio_sleep)) {
         LOG_ERR("Sleep GPIO not ready");
@@ -76,11 +79,11 @@ static int drv8844_init(const struct device *dev) {
     }
 
     for (int i = 0; i < config->channel_count; i++) {
-        const auto [gpio_en, gpio_pwm, gpio_dir] = config->channels[i];
+        const auto [gpio_en, pwm, gpio_dir] = config->channels[i];
         if (!gpio_is_ready_dt(&gpio_en)) {
             LOG_ERR("Enable GPIO not ready");
             return -ENODEV;
-        } if (!pwm_is_ready_dt(&gpio_pwm)) {
+        } if (!pwm_is_ready_dt(&pwm)) {
             LOG_ERR("PWM GPIO not ready");
             return -ENODEV;
         } if (!gpio_is_ready_dt(&gpio_dir)) {
@@ -90,12 +93,17 @@ static int drv8844_init(const struct device *dev) {
     }
 
     for (int i = 0; i < config->channel_count; i++) {
-        const auto [gpio_en, gpio_pwm, gpio_dir] = config->channels[i];
+        const auto [gpio_en, pwm, gpio_dir] = config->channels[i];
         if (const auto ret = gpio_pin_configure_dt(&gpio_en, GPIO_OUTPUT_INACTIVE); ret < 0) {
             LOG_ERR("Failed to configure gpio en");
             return ret;
         } if (const auto ret = gpio_pin_configure_dt(&gpio_dir, GPIO_OUTPUT_INACTIVE); ret < 0) {
             LOG_ERR("Failed to configure gpio dir");
+            return ret;
+        }
+
+        if (const auto ret = pwm_set_dt(&pwm, pwm.period, 0); ret < 0) {
+            LOG_ERR("Failed to configure pwm");
             return ret;
         }
     }
@@ -110,16 +118,30 @@ static int drv8844_init(const struct device *dev) {
     return 0;
 };
 
-#define DRV8844_DEFINE(inst)                                    \
-    static struct drv8844_data data##inst                       \
-    static const struct drv8844_config config##inst = {         \
-        .gpio_pwm = GPIO_DT_SPEC_GET(inst, gpio_pwm),           \
-        .gpio_dir = GPIO_DT_SPEC_GET(inst, gpio_dir),           \
-        .gpio_sleep = GPIO_DT_SPEC_GET(inst, gpio_sleep),       \
-        .gpio_fault = GPIO_DT_SPEC_GET(inst, gpio_fault),       \
-    }                                                           \
-    DEVICE_DT_INST_DEFINE(inst, drv8844_init, NULL, &data##inst,\
-    &config##inst, POST_KERNEL, CONFIG_DRV8844_INIT_PRIORITY,   \
-    &crir_motors_speed_driver_api)
+#define DRV8844_NODE DT_NODELABEL(drv8844_0)
+#define DRV8844_CHANNEL0_NODE DT_NODELABEL(channel0)
+#define DRV8844_CHANNEL1_NODE DT_NODELABEL(channel1)
 
-DT_INST_FOREACH_STATUS_OKAY(DRV8844_DEFINE);
+static struct drv8844_data drv8844_data_0;
+
+static const struct drv8844_config drv8844_config_0 = {
+    .channel_count = DT_PROP(DRV8844_NODE, channel_count),
+    .channels = {
+        {
+            .gpio_en = GPIO_DT_SPEC_GET(DRV8844_CHANNEL0_NODE, enable_gpios),
+            .pwm = PWM_DT_SPEC_GET(DRV8844_CHANNEL0_NODE),
+            .gpio_dir = GPIO_DT_SPEC_GET(DRV8844_CHANNEL0_NODE, dir_gpios),
+        },
+        {
+            .gpio_en = GPIO_DT_SPEC_GET(DRV8844_CHANNEL1_NODE, enable_gpios),
+            .pwm = PWM_DT_SPEC_GET(DRV8844_CHANNEL1_NODE),
+            .gpio_dir = GPIO_DT_SPEC_GET(DRV8844_CHANNEL1_NODE, dir_gpios),
+        },
+    },
+    .gpio_sleep = GPIO_DT_SPEC_GET(DRV8844_NODE, sleep_gpios),
+    .gpio_fault = GPIO_DT_SPEC_GET(DRV8844_NODE, fault_gpios),
+};
+
+DEVICE_DT_DEFINE(DRV8844_NODE, drv8844_init, NULL, &drv8844_data_0,
+                 &drv8844_config_0, POST_KERNEL, CONFIG_DRV8844_INIT_PRIORITY,
+                 &crir_motors_speed_driver_api);

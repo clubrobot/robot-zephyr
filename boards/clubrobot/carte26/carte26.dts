@@ -172,6 +172,17 @@
 	};
 };
 
+&timers8 {
+	st,prescaler = <10000>;
+	status = "okay";
+
+	pwm8: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim8_ch1_pc6 &tim8_ch2_pc7>;
+		pinctrl-names = "default";
+	};
+};
+
 &mac {
 	status = "okay";
 	pinctrl-0 = <&eth_ref_clk_pa1

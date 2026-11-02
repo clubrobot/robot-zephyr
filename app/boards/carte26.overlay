@@ -1,0 +1,49 @@
+/*
+	Created by Awing on the 22/10/2026
+	SPDX-License-Identifier: AGPL-3.0
+*/
+
+/ {
+
+	drv8844_0: motor_driver {
+		compatible = "drv8844";
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sleep-gpios = <&gpioc 11 GPIO_ACTIVE_HIGH>;
+		fault-gpios = <&gpioc 12 GPIO_ACTIVE_HIGH>;
+
+		channel-count = <2>;
+
+		channel0: channel@0 {
+			reg = <0>;
+			enable-gpios = <&gpiod 1 GPIO_ACTIVE_HIGH>;
+			pwms = <&pwm8 1 30000 0>;
+			dir-gpios = <&gpiod 3 GPIO_ACTIVE_HIGH>;
+		};
+
+		channel1: channel@1 {
+			reg = <1>;
+			enable-gpios = <&gpiod 0 GPIO_ACTIVE_HIGH>;
+			pwms = <&pwm8 2 30000 0>;
+			dir-gpios = <&gpiod 2 GPIO_ACTIVE_HIGH>;
+		};
+
+	};
+
+	aliases {
+		led0 = &led0;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			gpios = <&gpiod 10 GPIO_ACTIVE_HIGH>;
+			label = "Green LED 0";
+		};
+	};
+
+};
