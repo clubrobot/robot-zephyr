@@ -1,0 +1,31 @@
+&clk_hse { status = "disabled"; };
+&clk_lse { status = "disabled"; };
+
+&clk_hsi {
+	status = "okay";
+	hsi-div = <1>;
+};
+
+&pll {
+	status = "okay";
+	clocks = <&clk_hsi>;
+	div-m = <4>;
+	mul-n = <60>;
+	div-p = <2>;
+	div-q = <5>;
+	div-r = <2>;
+};
+
+&pll2 { status = "disabled"; };
+&pll3 { status = "disabled"; };
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(480)>;
+	d1cpre = <1>;
+	hpre = <2>;
+	d1ppre = <2>;
+	d2ppre1 = <2>;
+	d2ppre2 = <2>;
+	d3ppre = <2>;
+};
