@@ -1,0 +1,5 @@
+board:
+  name: board_2026
+  full_name: Main Board 2026
+  socs:
+    - name: stm32h723xx

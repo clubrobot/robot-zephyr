@@ -15,6 +15,8 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 static const struct device* lidar = DEVICE_DT_GET(DT_ALIAS(lidar));
 
+static const struct device *const qright = DEVICE_DT_GET(DT_ALIAS(right_encoder));
+static const struct device *const qleft = DEVICE_DT_GET(DT_ALIAS(left_encoder));
 
 int main(void)
 {
@@ -50,6 +52,19 @@ int main(void)
         }
 
         k_msleep(20);
+
+
+        struct sensor_value v;
+        int32_t counts;
+
+        sensor_sample_fetch(qright);
+        sensor_channel_get(qright, SENSOR_CHAN_ENCODER_COUNT, &v);
+        counts = v.val1;
+
+        sensor_channel_get(qright, SENSOR_CHAN_ROTATION, &v);
+        float rotation = sensor_value_to_float(&v);
+
+        printk("TIM23: %d  %f\n", counts, rotation);
 
         if (sensor_sample_fetch(lidar) != 0)
         {
