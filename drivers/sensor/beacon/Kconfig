@@ -1,0 +1,27 @@
+menuconfig BEACON_SENSOR
+	bool "Beacon Sensor to detect the other robot"
+	default y
+	depends on DT_HAS_BEACON_TRACKER_ENABLED
+	select GPIO
+	select I2C
+	help
+	  Enable beacon sensor
+
+config BEACON_MAX_I2C_CHUNK_SIZE
+	int "Maximum I2C chunk size allowed"
+	default 32
+	depends on BEACON_SENSOR
+	help
+	  Allow to limit the size of each i2c chunk.
+
+config BEACON_REFLECTANCE_THRESHOLD
+    int "Minimum reflectance for a zone to be a beacon candidate (0-127)"
+    range 0 127
+    default 127
+    depends on BEACON_SENSOR
+
+config BEACON_MAX_DISTANCE
+    int "Maximum distance in mm for a zone to be a beacon candidate"
+    default 4000
+    range 0 4000
+    depends on BEACON_SENSOR

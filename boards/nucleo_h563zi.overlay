@@ -1,0 +1,23 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
+/ {
+	beacon_tracker: beacon-tracker {
+		compatible = "beacon-tracker";
+		i2c-bus = <&i2c1>;
+		addresses = <0x30 0x31 0x32 0x33 0x34 0x35 0x36 0x37>;
+		stcp-gpios = <&gpiof 3 GPIO_ACTIVE_HIGH>;
+		shcp-gpios = <&gpiod 15 GPIO_ACTIVE_HIGH>;
+		ds-gpios   = <&gpiod 14 GPIO_ACTIVE_HIGH>;
+	};
+
+	aliases {
+		lidar=&beacon_tracker;
+	};
+};
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
