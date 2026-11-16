@@ -1,0 +1,38 @@
+description: |
+  Reflective Beacon Tracker.
+  A ring of 8 VL53L5CX (one every 45 degrees) powered on one by one through a
+  74HC595-style shift register. Reports distance and bearing of the closest
+  highly reflective target.
+
+
+compatible: "beacon-tracker"
+
+include: sensor-device.yaml
+
+properties:
+  i2c-bus:
+    type: phandle
+    required: true
+    description: I2C bus shared by the 8 sensors.
+
+  addresses:
+    type: array
+    required: true
+    description: |
+      The 8 I2C addresses (7 bit) assigned to the sensors.
+      Must be unique and must not contain 0x29 (VL53L5CX default address).
+
+  stcp-gpios:
+    type: phandle-array
+    required: true
+    description: Storage register clock (RCLK / latch) of the shift register.
+
+  shcp-gpios:
+    type: phandle-array
+    required: true
+    description: Shift register clock (SRCLK) of the shift register.
+
+  ds-gpios:
+    type: phandle-array
+    required: true
+    description: Serial data input (SER) of the shift register.
