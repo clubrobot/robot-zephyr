@@ -100,7 +100,7 @@
 	div-m = <4>;
 	mul-n = <60>;
 	div-p = <2>;
-	div-q = <5>;
+	div-q = <6>;
 	div-r = <2>;
 };
 
@@ -220,5 +220,33 @@
 		pinctrl-names = "default";
 		st,input-filter-level = <0>;
 		st,counts-per-revolution = <5000>;
+	};
+};
+
+&spi1 {
+	status = "okay";
+	pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+	pinctrl-names = "default";
+
+	cs-gpios = <&gpioc 4 GPIO_ACTIVE_LOW>;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	esp_hosted_mcu: esp-hosted-mcu@0 {
+		compatible = "espressif,esp-hosted-mcu";
+		reg = <0>;
+
+		spi-max-frequency = <20000000>;
+
+		reset-gpios     = <&gpiod 1 GPIO_ACTIVE_HIGH>;
+		dataready-gpios = <&gpiog 0 GPIO_ACTIVE_HIGH>;
+		handshake-gpios = <&gpioa 4 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+
+		esp_hosted_mcu_wifi: wifi {
+			compatible = "espressif,esp-hosted-mcu-wifi";
+			status = "okay";
+		};
 	};
 };

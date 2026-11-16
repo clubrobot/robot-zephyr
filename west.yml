@@ -21,3 +21,4 @@ manifest:
         name-allowlist:
           - cmsis_6    # required by the ARM port for Cortex-M
           - hal_stm32  # required by the nucleo_f302r8 board (STM32 based)
+          - nanopb     # required by esp hosted
