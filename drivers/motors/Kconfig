@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: AGPL-3.0
+
+menuconfig MOTORS
+    bool "Enable motor support"
+    help
+        This enable the support for all motor drivers
+
+if MOTORS
+rsource "DRV8844/Kconfig"
+endif # MOTORS

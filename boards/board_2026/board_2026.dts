@@ -57,6 +57,37 @@
 		my-pin2 = &pc11_out;
 		right-encoder = &qdec23;
 		left-encoder = &qdec24;
+		left-motor=&drv8844_0;
+		right-motor=&drv8844_0;
+		left-motor-channel=&channel0;
+		right-motor-channel=&channel1;
+	};
+
+	drv8844_0: drv8844 {
+		compatible = "drv8844";
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reset-gpios = <&gpioc 11 GPIO_ACTIVE_HIGH>;
+		fault-gpios = <&gpioc 12 GPIO_ACTIVE_HIGH>;
+
+		channel-count = <2>;
+
+		channel0: channel@0 {
+			reg = <0>;
+			enable-gpios = <&gpiod 1 GPIO_ACTIVE_HIGH>;
+			pwm = <&pc6_pwm>;
+			dir-gpios = <&gpiod 3 GPIO_ACTIVE_HIGH>;
+		};
+
+		channel1: channel@1 {
+			reg = <1>;
+			enable-gpios = <&gpiod 0 GPIO_ACTIVE_HIGH>;
+			pwm = <&pc6_pwm>;
+			dir-gpios = <&gpiod 2 GPIO_ACTIVE_HIGH>;
+		};
 	};
 
 	pwm_outputs {

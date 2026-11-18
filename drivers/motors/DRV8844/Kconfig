@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: AGPL-3.0
+
+menuconfig DRV8844
+    bool "DRV8844 driver support"
+    help
+        This option enables the driver support for the DRV8844
+
+if DRV8844
+
+config DRV8844_INIT_PRIORITY
+    int "DRV8844 driver init priority"
+    default KERNEL_INIT_PRIORITY_DEVICE
+    help
+        DRV8844 driver initialisation priority
+
+config DRV8844_PWM_PERIOD
+    int "DRV8844 PWM period (ns)"
+    default 30000
+    help
+        DRV8844 PWM frequency in nanoseconds
+
+config DRV8844_MAX_PWM
+    int "DRV8844 maximum PWM value (in %)"
+    default 100
+    help
+        DRV8844 maximum PWM value in % e.g. 50 means 50% duty cycle
+
+module = DRV8844
+module-str = DRV8844
+source "subsys/logging/Kconfig.template.log_config"
+
+endif
