@@ -1,13 +1,66 @@
-# Copyright (c) 2021 Nordic Semiconductor ASA
-# SPDX-License-Identifier: Apache-2.0
-#
-# This file is the application Kconfig entry point. All application Kconfig
-# options can be defined here or included via other application Kconfig files.
-# You can browse these options using the west targets menuconfig (terminal) or
-# guiconfig (GUI).
+# SPDX-License-Identifier: AGPL-3.0
 
 menu "Zephyr"
 source "Kconfig.zephyr"
+endmenu
+
+menu "Application"
+
+
+    menu "threads"
+    menu "stacks"
+        config DEFAULT_THREAD_STACK_SIZE
+            int "Default thread stack size"
+            default 512
+            help
+                This option sets the default thread stack size for the application.
+
+        config IHM_THREAD_STACK_SIZE
+            int "IHM thread stack size"
+            default DEFAULT_THREAD_STACK_SIZE
+            help
+                This option sets the IHM thread stack size for the application.
+
+        config SENSOR_THREAD_STACK_SIZE
+            int "Sensor thread stack size"
+            default DEFAULT_THREAD_STACK_SIZE
+            help
+                This option sets the Sensor thread stack size for the application.
+
+        config MOTOR_THREAD_STACK_SIZE
+            int "Motor thread stack size"
+            default DEFAULT_THREAD_STACK_SIZE
+            help
+                This option sets the Motor thread stack size for the application.
+    endmenu
+    menu "priorities"
+        config DEFAULT_THREAD_PRIORITY
+            int "Default thread priority"
+            default 5
+            help
+                This option sets the default thread priority for the application.
+
+
+        config IHM_THREAD_PRIORITY
+            int "IHM thread priority"
+            default DEFAULT_THREAD_PRIORITY
+            help
+                This option sets the IHM thread priority for the application.
+
+        config SENSOR_THREAD_PRIORITY
+            int "Sensor thread priority"
+            default DEFAULT_THREAD_PRIORITY
+            help
+                This option sets the Sensor thread priority for the application.
+
+        config MOTOR_THREAD_PRIORITY
+            int "Motor thread priority"
+            default DEFAULT_THREAD_PRIORITY
+            help
+                This option sets the Motor thread priority for the application.
+        endmenu
+    endmenu
+
 endmenu
 
 module = APP
