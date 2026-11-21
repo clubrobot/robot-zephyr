@@ -1,0 +1,241 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: C/C++ lint
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:v0.30.0
+
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
+      CCACHE_DIR: ~/.cache/ccache
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: Zephyr
+
+      - name: Restore west workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            .west
+            zephyr
+            modules
+            bootloader
+            tools
+            ~/.cache/ccache
+          key: lint-zephyr-v1-${{ runner.os }}-${{ hashFiles('Zephyr/west.yml') }}
+          restore-keys: |
+            lint-zephyr-v1-${{ runner.os }}-
+
+      - name: Initialize west workspace
+        run: |
+          if [ ! -f .west/config ]; then
+            west init -l Zephyr
+          fi
+          west update
+
+      - name: Export Zephyr CMake package
+        run: west zephyr-export
+
+      - name: Restore clang tooling packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/apt/archives
+          key: clang-tools-${{ runner.os }}-${{ runner.arch }}-v1
+          restore-keys: |
+            clang-tools-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install clang tools
+        run: |
+          mkdir -p ~/.cache/apt/archives
+          apt-get update
+          apt-get install \
+            -y \
+            --download-only \
+            --no-install-recommends \
+            -o Dir::Cache::archives="$HOME/.cache/apt/archives" \
+            clang-tidy clang-format
+          apt-get install \
+            -y \
+            --no-install-recommends \
+            -o Dir::Cache::archives="$HOME/.cache/apt/archives" \
+            clang-tidy clang-format
+
+      - name: Check C and C++ formatting
+        shell: bash
+        run: |
+          cd Zephyr
+          : > lint-format-files.txt
+          format_changed=0
+          python3 - <<'PY' > /tmp/clang-files.txt
+          import fnmatch
+          import subprocess
+          from pathlib import Path
+
+          ignore_file = Path(".clang-format-ignore")
+          patterns = []
+          if ignore_file.exists():
+              patterns = [
+                  line.strip()
+                  for line in ignore_file.read_text().splitlines()
+                  if line.strip() and not line.lstrip().startswith("#")
+              ]
+
+          files = subprocess.check_output(
+              ["git", "ls-files", "*.c", "*.h", "*.cpp", "*.hpp", "*.cc", "*.cxx"],
+              text=True,
+          ).splitlines()
+
+          for file in files:
+              ignored = False
+              for pattern in patterns:
+                  negated = pattern.startswith("!")
+                  candidate = pattern[1:] if negated else pattern
+                  candidate = candidate.removeprefix("/").removesuffix("/")
+                  if fnmatch.fnmatchcase(file, candidate) or fnmatch.fnmatchcase(file, candidate + "/*"):
+                      ignored = not negated
+              if not ignored:
+                  print(file)
+          PY
+          while IFS= read -r file; do
+            formatted_file="$(mktemp)"
+            clang-format --style=file "$file" > "$formatted_file"
+            if ! cmp -s "$file" "$formatted_file"; then
+                echo "$file" >> lint-format-files.txt
+                format_changed=1
+            fi
+            rm -f "$formatted_file"
+          done < /tmp/clang-files.txt
+
+          if [ "$format_changed" -eq 1 ]; then
+            echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Affected files |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|---|" >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r file; do
+              echo "| \`$file\` |" >> "$GITHUB_STEP_SUMMARY"
+            done < lint-format-files.txt
+            echo 1 > "$GITHUB_WORKSPACE/lint-format-status"
+          else
+            echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
+            echo 'All tracked C/C++ files match `.clang-format`.' >> "$GITHUB_STEP_SUMMARY"
+            echo 0 > "$GITHUB_WORKSPACE/lint-format-status"
+          fi
+
+      - name: Run clang-tidy
+        shell: bash
+        run: |
+          set +e
+          cd Zephyr
+          python3 - <<'PY' > /tmp/clang-files.txt
+          import fnmatch
+          import subprocess
+          from pathlib import Path
+
+          ignore_file = Path(".clang-format-ignore")
+          patterns = []
+          if ignore_file.exists():
+              patterns = [
+                  line.strip()
+                  for line in ignore_file.read_text().splitlines()
+                  if line.strip() and not line.lstrip().startswith("#")
+              ]
+
+          files = subprocess.check_output(
+              ["git", "ls-files", "*.c", "*.h", "*.cpp", "*.hpp", "*.cc", "*.cxx"],
+              text=True,
+          ).splitlines()
+
+          for file in files:
+              ignored = False
+              for pattern in patterns:
+                  negated = pattern.startswith("!")
+                  candidate = pattern[1:] if negated else pattern
+                  candidate = candidate.removeprefix("/").removesuffix("/")
+                  if fnmatch.fnmatchcase(file, candidate) or fnmatch.fnmatchcase(file, candidate + "/*"):
+                      ignored = not negated
+              if not ignored:
+                  print(file)
+          PY
+          status=0
+          xargs clang-tidy \
+            --config-file=.clang-tidy \
+            --quiet < /tmp/clang-files.txt > lint-clang-tidy.log 2>&1 ||
+            status=$?
+          echo "$status" > "$GITHUB_WORKSPACE/lint-clang-tidy-status"
+          if [ "$status" -eq 0 ]; then
+            echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "No clang-tidy diagnostics." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "clang-tidy found issues." >> "$GITHUB_STEP_SUMMARY"
+            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+            import collections
+            import re
+
+            pattern = re.compile(r"^(.*?):(\d+):(\d+): (warning|error): (.*) \[([^\]]+)\]$")
+            rules = collections.Counter()
+            files = collections.Counter()
+            severities = collections.Counter()
+
+            with open("lint-clang-tidy.log", encoding="utf-8") as log:
+                for line in log:
+                    match = pattern.match(line.strip())
+                    if not match:
+                        continue
+                    path, _, _, severity, _, rule = match.groups()
+                    rules[rule] += 1
+                    files[path] += 1
+                    severities[severity] += 1
+
+            print("| Severity | Count |")
+            print("|---|---:|")
+            for severity in ("error", "warning"):
+                print(f"| {severity} | {severities[severity]} |")
+
+            print()
+            print("| Failed rule | Count |")
+            print("|---|---:|")
+            for rule, count in rules.most_common():
+                print(f"| `{rule}` | {count} |")
+
+            print()
+            print("| Affected file | Diagnostics |")
+            print("|---|---:|")
+            for path, count in files.most_common():
+                print(f"| `{path}` | {count} |")
+
+            if not rules:
+                print()
+                print("_No structured clang-tidy diagnostics were parsed; see the raw log below._")
+            PY
+            echo
+            echo "#### clang-tidy diagnostics" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            sed -n '1,200p' lint-clang-tidy.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      - name: Fail on lint findings
+        if: always()
+        run: |
+          if [ "$(cat "$GITHUB_WORKSPACE/lint-format-status" 2>/dev/null || echo 0)" -ne 0 ]; then
+            exit 1
+          fi
+          if [ "$(cat "$GITHUB_WORKSPACE/lint-clang-tidy-status" 2>/dev/null || echo 0)" -ne 0 ]; then
+            exit 1
+          fi
