@@ -1,0 +1,224 @@
+/dts-v1/;
+#include <st/h7/stm32h723Xg.dtsi>
+#include <st/h7/stm32h723zgtx-pinctrl.dtsi>
+
+#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/sensor/qdec_stm32.h>
+
+/ {
+
+	chosen {
+		zephyr,console = &usart3;
+		zephyr,shell-uart = &usart3;
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+	};
+
+	leds: leds {
+		compatible = "gpio-leds";
+
+		led0: led_0 {
+			gpios = <&gpiod 11 GPIO_ACTIVE_HIGH>;
+			label = "LED 0";
+		};
+
+		led1: led_1 {
+			gpios = <&gpiod 10 GPIO_ACTIVE_HIGH>;
+			label = "LED 1";
+		};
+
+		led2: led_2 {
+			gpios = <&gpiob 15 GPIO_ACTIVE_HIGH>;
+			label = "LED 2";
+		};
+
+		led3: led_3 {
+			gpios = <&gpiob 14 GPIO_ACTIVE_HIGH>;
+			label = "LED 3";
+		};
+	};
+
+	beacon_tracker: beacon-tracker {
+		compatible = "beacon-tracker";
+		i2c-bus = <&i2c2>;
+		addresses = <0x30 0x31 0x32 0x33 0x34 0x35 0x36 0x37>;
+		stcp-gpios = <&gpioe 14 GPIO_ACTIVE_HIGH>;
+		shcp-gpios = <&gpioe 15 GPIO_ACTIVE_HIGH>;
+		ds-gpios = <&gpioe 13 GPIO_ACTIVE_HIGH>;
+	};
+
+	aliases {
+		lidar = &beacon_tracker;
+		i2c-0 = &i2c2;
+		led0 = &led0;
+		my-pwm = &pc6_pwm;
+		my-pin = &pd1_out;
+		my-pin2 = &pc11_out;
+		right-encoder = &qdec23;
+		left-encoder = &qdec24;
+	};
+
+	pwm_outputs {
+		compatible = "pwm-leds";
+
+		pc6_pwm: pc6_pwm {
+			pwms = <&pwm3 1 PWM_KHZ(25) PWM_POLARITY_NORMAL>;
+		};
+	};
+
+	gpio_outputs {
+		compatible = "gpio-leds";
+
+		pd1_out: pd1_out {
+			gpios = <&gpiod 1 GPIO_ACTIVE_HIGH>;
+		};
+
+		pc11_out: pc11_out {
+			gpios = <&gpioc 11 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+};
+
+&clk_hsi {
+	status = "okay";
+	hsi-div = <1>;
+};
+
+&clk_lsi {
+	status = "okay";
+};
+
+&clk_hsi48 {
+	status = "okay";
+};
+
+&pll {
+	status = "okay";
+	clocks = <&clk_hsi>;
+	div-m = <4>;
+	mul-n = <60>;
+	div-p = <2>;
+	div-q = <5>;
+	div-r = <2>;
+};
+
+&pll2 {
+	status = "disabled";
+};
+
+&pll3 {
+	status = "disabled";
+};
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(480)>;
+	d1cpre = <1>;
+	hpre = <2>;    /* HCLK: 275   MHz */
+	d1ppre = <2>;  /* APB1: 137.5 MHz */
+	d2ppre1 = <2>; /* APB2: 137.5 MHz */
+	d2ppre2 = <2>; /* APB3: 137.5 MHz */
+	d3ppre = <2>;  /* APB4: 137.5 MHz */
+};
+
+&pwr {
+	power-supply = "ldo";
+};
+
+&usart3 {
+	pinctrl-0 = <&usart3_tx_pd8 &usart3_rx_pd9>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+&rtc {
+	clocks = <&rcc STM32_CLOCK(APB4, 16)>,
+			 <&rcc STM32_SRC_LSI RTC_SEL(2)>;
+	status = "okay";
+};
+
+&timers3 {
+	status = "okay";
+	st,prescaler = <3>;
+
+	pwm3: pwm {
+		status = "okay";
+		pinctrl-0 = <&tim3_ch1_pc6>;
+		pinctrl-names = "default";
+	};
+};
+
+&rng {
+	status = "okay";
+};
+
+&fdcan1 {
+	status = "disabled";
+};
+
+&i2c2 {
+	pinctrl-0 = <&i2c2_scl_pb10 &i2c2_sda_pb11>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST_PLUS>;
+	timings = <120000000 1000000 0xD42036>; /* use samples/boards/st/i2c_timing to get the parameters */
+};
+
+&pinctrl {
+	enc23_ch1_pf6: enc23_ch1_pf6 {
+		pinmux = <STM32_PINMUX('F', 6, AF13)>;
+		bias-disable;
+		drive-push-pull;
+		slew-rate = "low-speed";
+	};
+
+	enc23_ch2_pg13: enc23_ch2_pg13 {
+		pinmux = <STM32_PINMUX('G', 13, AF13)>;
+		bias-disable;
+		drive-push-pull;
+		slew-rate = "low-speed";
+	};
+
+	enc24_ch1_pf11: enc24_ch1_pf11 {
+		pinmux = <STM32_PINMUX('F', 11, AF14)>;
+		bias-disable;
+		drive-push-pull;
+		slew-rate = "low-speed";
+	};
+
+	enc24_ch2_pf12: enc24_ch2_pf12 {
+		pinmux = <STM32_PINMUX('F', 12, AF14)>;
+		bias-disable;
+		drive-push-pull;
+		slew-rate = "low-speed";
+	};
+};
+
+&timers23 {
+	status = "okay";
+
+	qdec23: qdecoder {
+		compatible = "st,stm32-qdec";
+		status = "okay";
+		pinctrl-0 = <&enc23_ch1_pf6 &enc23_ch2_pg13>;
+		pinctrl-names = "default";
+		st,input-filter-level = <0>;
+		st,counts-per-revolution = <5000>;
+	};
+};
+
+&timers24 {
+	status = "okay";
+
+	qdec24: qdecoder {
+		compatible = "st,stm32-qdec";
+		status = "okay";
+		pinctrl-0 = <&enc24_ch1_pf11 &enc24_ch2_pf12>;
+		pinctrl-names = "default";
+		st,input-filter-level = <0>;
+		st,counts-per-revolution = <5000>;
+	};
+};

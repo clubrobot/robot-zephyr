@@ -1,0 +1,2 @@
+config BOARD_BOARD_2026
+	select SOC_STM32H723XX

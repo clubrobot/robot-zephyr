@@ -1,0 +1,27 @@
+identifier: board_2026
+name: Main Board 2026
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+ram: 320
+flash: 1024
+supported:
+  - arduino_gpio
+  - arduino_i2c
+  - arduino_spi
+  - ptp_clock
+  - uart
+  - gpio
+  - counter
+  - i2c
+  - pwm
+  - spi
+  - netif:eth
+  - backup_sram
+  - usb_device
+  - usbd
+  - rtc
+  - can
+  - dac
+  - adc
