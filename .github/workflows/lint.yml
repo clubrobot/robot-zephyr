@@ -18,17 +18,83 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore clang tooling packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/apt/archives
+          key: clang-tools-${{ runner.os }}-${{ runner.arch }}-v1
+          restore-keys: |
+            clang-tools-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install clang tools
         run: |
+          mkdir -p ~/.cache/apt/archives
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-tidy clang-format
+          sudo apt-get install \
+            -y \
+            --download-only \
+            --no-install-recommends \
+            -o Dir::Cache::archives="$HOME/.cache/apt/archives" \
+            clang-tidy clang-format
+          sudo apt-get install \
+            -y \
+            --no-install-recommends \
+            -o Dir::Cache::archives="$HOME/.cache/apt/archives" \
+            clang-tidy clang-format
 
       - name: Check C and C++ formatting
         run: |
-          git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' |
-            xargs clang-format --dry-run --Werror --style=file
+          : > lint-format-report.patch
+          while IFS= read -r file; do
+            diff -u \
+              --label "$file" \
+              --label "$file" \
+              "$file" \
+              <(clang-format --style=file "$file") \
+              >> lint-format-report.patch || true
+          done < <(git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx')
+
+          if [ -s lint-format-report.patch ]; then
+            echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "Formatting differences were found." >> "$GITHUB_STEP_SUMMARY"
+            echo '```diff' >> "$GITHUB_STEP_SUMMARY"
+            sed -n '1,200p' lint-format-report.patch >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo 1 > lint-format-status
+          else
+            echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "No formatting differences found." >> "$GITHUB_STEP_SUMMARY"
+            echo 0 > lint-format-status
+          fi
 
       - name: Run clang-tidy
         run: |
+          set -o pipefail
           git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' |
-            xargs clang-tidy --config-file=.clang-tidy --quiet
+            xargs clang-tidy \
+              --config-file=.clang-tidy \
+              --quiet 2>&1 |
+            tee lint-clang-tidy.log
+          status=${PIPESTATUS[1]}
+          echo "$status" > lint-clang-tidy-status
+          if [ "$status" -eq 0 ]; then
+            echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "No clang-tidy findings." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
+            echo "clang-tidy found issues." >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            sed -n '1,200p' lint-clang-tidy.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      - name: Fail on lint findings
+        if: always()
+        run: |
+          if [ "$(cat lint-format-status 2>/dev/null || echo 0)" -ne 0 ]; then
+            exit 1
+          fi
+          if [ "$(cat lint-clang-tidy-status 2>/dev/null || echo 0)" -ne 0 ]; then
+            exit 1
+          fi
