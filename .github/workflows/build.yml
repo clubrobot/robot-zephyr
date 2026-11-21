@@ -11,14 +11,15 @@ on:
 
 jobs:
   build:
-    name: Build BLE_Beacon for esp32_devkitc_wroom
-    runs-on: ubuntu-26.04
+    name: Build the application
+    runs-on: ubuntu-latest
 
     container:
       image: ghcr.io/zephyrproject-rtos/ci:v0.30.0
 
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
+      CCACHE_DIR: ~/.cache/ccache
 
     steps:
       - name: Checkout repository
@@ -26,19 +27,34 @@ jobs:
         with:
           path: Zephyr   # checked out into a subfolder so west can manage the workspace
 
+      - name: Restore west workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            .west
+            zephyr
+            modules
+            bootloader
+            tools
+            ~/.cache/ccache
+          key: zephyr-${{ runner.os }}-${{ hashFiles('Zephyr/west.yml') }}
+          restore-keys: |
+            zephyr-${{ runner.os }}-
+
       - name: Initialize west workspace
         run: |
-          west init -l Zephyr
-          west update --fetch-opt=--depth=1
+          if [ ! -f .west/config ]; then
+            west init -l Zephyr
+          fi
+          west update
 
       - name: Export Zephyr CMake package
         run: |
           west zephyr-export
 
-      - name: Build BLE_Beacon
+      - name: Build application
         run: |
           west build \
             --pristine \
-            --board board2026 \
-            Zephyr/app \
-            -- \
+            --board board_2026 \
+            Zephyr/app
