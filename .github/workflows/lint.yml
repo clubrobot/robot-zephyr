@@ -14,9 +14,42 @@ jobs:
     name: C/C++ lint
     runs-on: ubuntu-latest
 
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:v0.30.0
+
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
+      CCACHE_DIR: ~/.cache/ccache
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          path: Zephyr
+
+      - name: Restore west workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            .west
+            zephyr
+            modules
+            bootloader
+            tools
+            ~/.cache/ccache
+          key: lint-zephyr-v1-${{ runner.os }}-${{ hashFiles('Zephyr/west.yml') }}
+          restore-keys: |
+            lint-zephyr-v1-${{ runner.os }}-
+
+      - name: Initialize west workspace
+        run: |
+          if [ ! -f .west/config ]; then
+            west init -l Zephyr
+          fi
+          west update
+
+      - name: Export Zephyr CMake package
+        run: west zephyr-export
 
       - name: Restore clang tooling packages
         uses: actions/cache@v4
@@ -29,14 +62,14 @@ jobs:
       - name: Install clang tools
         run: |
           mkdir -p ~/.cache/apt/archives
-          sudo apt-get update
-          sudo apt-get install \
+          apt-get update
+          apt-get install \
             -y \
             --download-only \
             --no-install-recommends \
             -o Dir::Cache::archives="$HOME/.cache/apt/archives" \
             clang-tidy clang-format
-          sudo apt-get install \
+          apt-get install \
             -y \
             --no-install-recommends \
             -o Dir::Cache::archives="$HOME/.cache/apt/archives" \
@@ -44,6 +77,7 @@ jobs:
 
       - name: Check C and C++ formatting
         run: |
+          cd Zephyr
           : > lint-format-files.txt
           format_changed=0
           while IFS= read -r file; do
@@ -65,15 +99,16 @@ jobs:
             while IFS= read -r file; do
               echo "| \`$file\` |" >> "$GITHUB_STEP_SUMMARY"
             done < lint-format-files.txt
-            echo 1 > lint-format-status
+            echo 1 > "$GITHUB_WORKSPACE/lint-format-status"
           else
             echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
             echo "All tracked C/C++ files match `.clang-format`." >> "$GITHUB_STEP_SUMMARY"
-            echo 0 > lint-format-status
+            echo 0 > "$GITHUB_WORKSPACE/lint-format-status"
           fi
 
       - name: Run clang-tidy
         run: |
+          cd Zephyr
           set -o pipefail
           git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' |
             xargs clang-tidy \
@@ -81,7 +116,7 @@ jobs:
               --quiet 2>&1 |
             tee lint-clang-tidy.log
           status=${PIPESTATUS[1]}
-          echo "$status" > lint-clang-tidy-status
+          echo "$status" > "$GITHUB_WORKSPACE/lint-clang-tidy-status"
           if [ "$status" -eq 0 ]; then
             echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
             echo "No clang-tidy diagnostics." >> "$GITHUB_STEP_SUMMARY"
