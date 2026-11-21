@@ -216,6 +216,11 @@ jobs:
             for path, count in files.most_common():
                 print(f"| `{path}` | {count} |")
             PY
+            echo
+            echo "#### clang-tidy diagnostics" >> "$GITHUB_STEP_SUMMARY"
+            echo '```text' >> "$GITHUB_STEP_SUMMARY"
+            sed -n '1,200p' lint-clang-tidy.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
 
