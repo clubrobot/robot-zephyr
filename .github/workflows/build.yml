@@ -1,0 +1,44 @@
+name: Build Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    name: Build BLE_Beacon for esp32_devkitc_wroom
+    runs-on: ubuntu-26.04
+
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:v0.30.0
+
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: Zephyr   # checked out into a subfolder so west can manage the workspace
+
+      - name: Initialize west workspace
+        run: |
+          west init -l Zephyr
+          west update --fetch-opt=--depth=1
+
+      - name: Export Zephyr CMake package
+        run: |
+          west zephyr-export
+
+      - name: Build BLE_Beacon
+        run: |
+          west build \
+            --pristine \
+            --board board2026 \
+            Zephyr/app \
+            -- \
