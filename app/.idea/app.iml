@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="FacetManager">
+    <facet type="Python" name="Python facet">
+      <configuration sdkName="$MODULE_DIR$/../../.venv/bin/python" />
+    </facet>
+  </component>
+  <component name="NewModuleRootManager">
+    <orderEntry type="jdk" jdkName="$MODULE_DIR$/../../.venv/bin/python" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="$MODULE_DIR$/../../.venv/bin/python interpreter library" level="application" />
+  </component>
+</module>
