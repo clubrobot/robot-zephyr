@@ -44,26 +44,31 @@ jobs:
 
       - name: Check C and C++ formatting
         run: |
-          : > lint-format-report.patch
+          : > lint-format-files.txt
+          format_changed=0
           while IFS= read -r file; do
             diff -u \
               --label "$file" \
               --label "$file" \
               "$file" \
               <(clang-format --style=file "$file") \
-              >> lint-format-report.patch || true
+              >/dev/null || {
+                echo "$file" >> lint-format-files.txt
+                format_changed=1
+              }
           done < <(git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx')
 
-          if [ -s lint-format-report.patch ]; then
+          if [ "$format_changed" -eq 1 ]; then
             echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
-            echo "Formatting differences were found." >> "$GITHUB_STEP_SUMMARY"
-            echo '```diff' >> "$GITHUB_STEP_SUMMARY"
-            sed -n '1,200p' lint-format-report.patch >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "| Affected files |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|---|" >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r file; do
+              echo "| \`$file\` |" >> "$GITHUB_STEP_SUMMARY"
+            done < lint-format-files.txt
             echo 1 > lint-format-status
           else
             echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
-            echo "No formatting differences found." >> "$GITHUB_STEP_SUMMARY"
+            echo "All tracked C/C++ files match `.clang-format`." >> "$GITHUB_STEP_SUMMARY"
             echo 0 > lint-format-status
           fi
 
@@ -79,13 +84,46 @@ jobs:
           echo "$status" > lint-clang-tidy-status
           if [ "$status" -eq 0 ]; then
             echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
-            echo "No clang-tidy findings." >> "$GITHUB_STEP_SUMMARY"
+            echo "No clang-tidy diagnostics." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
             echo "clang-tidy found issues." >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            sed -n '1,200p' lint-clang-tidy.log >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+            import collections
+            import re
+
+            pattern = re.compile(r"^(.*?):(\d+):(\d+): (warning|error): (.*) \[([^\]]+)\]$")
+            rules = collections.Counter()
+            files = collections.Counter()
+            severities = collections.Counter()
+
+            with open("lint-clang-tidy.log", encoding="utf-8") as log:
+                for line in log:
+                    match = pattern.match(line.strip())
+                    if not match:
+                        continue
+                    path, _, _, severity, _, rule = match.groups()
+                    rules[rule] += 1
+                    files[path] += 1
+                    severities[severity] += 1
+
+            print("| Severity | Count |")
+            print("|---|---:|")
+            for severity in ("error", "warning"):
+                print(f"| {severity} | {severities[severity]} |")
+
+            print()
+            print("| Failed rule | Count |")
+            print("|---|---:|")
+            for rule, count in rules.most_common():
+                print(f"| `{rule}` | {count} |")
+
+            print()
+            print("| Affected file | Diagnostics |")
+            print("|---|---:|")
+            for path, count in files.most_common():
+                print(f"| `{path}` | {count} |")
+            PY
           fi
           exit 0
 
