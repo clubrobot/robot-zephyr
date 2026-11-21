@@ -76,21 +76,21 @@ jobs:
             clang-tidy clang-format
 
       - name: Check C and C++ formatting
+        shell: bash
         run: |
           cd Zephyr
           : > lint-format-files.txt
           format_changed=0
+          git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' > /tmp/clang-files.txt
           while IFS= read -r file; do
-            diff -u \
-              --label "$file" \
-              --label "$file" \
-              "$file" \
-              <(clang-format --style=file "$file") \
-              >/dev/null || {
+            formatted_file="$(mktemp)"
+            clang-format --style=file "$file" > "$formatted_file"
+            if ! cmp -s "$file" "$formatted_file"; then
                 echo "$file" >> lint-format-files.txt
                 format_changed=1
-              }
-          done < <(git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx')
+            fi
+            rm -f "$formatted_file"
+          done < /tmp/clang-files.txt
 
           if [ "$format_changed" -eq 1 ]; then
             echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
@@ -107,15 +107,14 @@ jobs:
           fi
 
       - name: Run clang-tidy
+        shell: bash
         run: |
           cd Zephyr
-          set -o pipefail
-          git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' |
-            xargs clang-tidy \
-              --config-file=.clang-tidy \
-              --quiet 2>&1 |
-            tee lint-clang-tidy.log
-          status=${PIPESTATUS[1]}
+          git ls-files '*.c' '*.h' '*.cpp' '*.hpp' '*.cc' '*.cxx' > /tmp/clang-files.txt
+          xargs clang-tidy \
+            --config-file=.clang-tidy \
+            --quiet < /tmp/clang-files.txt > lint-clang-tidy.log 2>&1
+          status=$?
           echo "$status" > "$GITHUB_WORKSPACE/lint-clang-tidy-status"
           if [ "$status" -eq 0 ]; then
             echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
@@ -165,9 +164,9 @@ jobs:
       - name: Fail on lint findings
         if: always()
         run: |
-          if [ "$(cat lint-format-status 2>/dev/null || echo 0)" -ne 0 ]; then
+          if [ "$(cat "$GITHUB_WORKSPACE/lint-format-status" 2>/dev/null || echo 0)" -ne 0 ]; then
             exit 1
           fi
-          if [ "$(cat lint-clang-tidy-status 2>/dev/null || echo 0)" -ne 0 ]; then
+          if [ "$(cat "$GITHUB_WORKSPACE/lint-clang-tidy-status" 2>/dev/null || echo 0)" -ne 0 ]; then
             exit 1
           fi
