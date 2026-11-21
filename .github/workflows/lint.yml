@@ -131,13 +131,14 @@ jobs:
             echo 1 > "$GITHUB_WORKSPACE/lint-format-status"
           else
             echo "### clang-format findings" >> "$GITHUB_STEP_SUMMARY"
-            echo "All tracked C/C++ files match `.clang-format`." >> "$GITHUB_STEP_SUMMARY"
+            echo 'All tracked C/C++ files match `.clang-format`.' >> "$GITHUB_STEP_SUMMARY"
             echo 0 > "$GITHUB_WORKSPACE/lint-format-status"
           fi
 
       - name: Run clang-tidy
         shell: bash
         run: |
+          set +e
           cd Zephyr
           python3 - <<'PY' > /tmp/clang-files.txt
           import fnmatch
@@ -169,10 +170,11 @@ jobs:
               if not ignored:
                   print(file)
           PY
+          status=0
           xargs clang-tidy \
             --config-file=.clang-tidy \
-            --quiet < /tmp/clang-files.txt > lint-clang-tidy.log 2>&1
-          status=$?
+            --quiet < /tmp/clang-files.txt > lint-clang-tidy.log 2>&1 ||
+            status=$?
           echo "$status" > "$GITHUB_WORKSPACE/lint-clang-tidy-status"
           if [ "$status" -eq 0 ]; then
             echo "### clang-tidy findings" >> "$GITHUB_STEP_SUMMARY"
@@ -215,6 +217,10 @@ jobs:
             print("|---|---:|")
             for path, count in files.most_common():
                 print(f"| `{path}` | {count} |")
+
+            if not rules:
+                print()
+                print("_No structured clang-tidy diagnostics were parsed; see the raw log below._")
             PY
             echo
             echo "#### clang-tidy diagnostics" >> "$GITHUB_STEP_SUMMARY"
